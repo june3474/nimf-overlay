@@ -50,6 +50,16 @@ class OverlayLayoutTest(unittest.TestCase):
             self.assertIn(f'version: "{row[1]}"', workflow)
             self.assertIn(f"sha256: {row[2]}", workflow)
 
+    def test_qt_511_gcc9_compatibility_patch_is_pinned(self) -> None:
+        dockerfile = self.read("containers/qt5-sdk/Dockerfile")
+        patch = self.read("containers/qt5-sdk/patches/qt-5.11-gcc9.patch")
+        workflow = self.read(".github/workflows/build-sdk-images.yml")
+        self.assertIn("COPY containers/qt5-sdk/patches", dockerfile)
+        self.assertIn('if [ "${QT_MINOR}" = 5.11 ]', dockerfile)
+        self.assertIn("typedef quint32 result_type;", patch)
+        self.assertIn("e094806951ff7337b5b0c534db479e3808f153a7", patch)
+        self.assertIn("containers/qt5-sdk/patches/**", workflow)
+
     def test_workflows_match_release_policy(self) -> None:
         update = self.read(".github/workflows/update-nimf.yml")
         self.assertIn('cron: "17 3 * * 1"', update)

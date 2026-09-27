@@ -12,10 +12,11 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       bison build-essential ca-certificates curl flex gperf libglib2.0-dev \
       libfontconfig1-dev libfreetype6-dev libx11-dev libxext-dev \
-      libxrender-dev perl pkg-config python3 python-is-python3 xz-utils \
+      libxrender-dev patch perl pkg-config python3 python-is-python3 xz-utils \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
+COPY containers/qt5-sdk/patches /tmp/qt5-sdk-patches
 RUN test -n "${QT_MINOR}" \
  && test -n "${QT_VERSION}" \
  && test -n "${QT_SHA256}" \
@@ -24,6 +25,9 @@ RUN test -n "${QT_MINOR}" \
  && echo "${QT_SHA256}  qtbase.tar.xz" | sha256sum -c - \
  && mkdir qtbase \
  && tar -xJf qtbase.tar.xz --strip-components=1 -C qtbase \
+ && if [ "${QT_MINOR}" = 5.11 ]; then \
+      patch -d qtbase -p1 < /tmp/qt5-sdk-patches/qt-5.11-gcc9.patch; \
+    fi \
  && cd qtbase \
  && ./configure \
       -prefix "/opt/qt/${QT_VERSION}" \

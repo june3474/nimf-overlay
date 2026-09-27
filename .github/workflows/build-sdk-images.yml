@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - containers/qt5-sdk/Dockerfile
+      - containers/qt5-sdk/patches/**
       - config/qt5-sdks.tsv
       - scripts/build-qt5-plugin.sh
       - scripts/test-qt5-plugin.sh
