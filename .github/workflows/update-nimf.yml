@@ -236,7 +236,7 @@ jobs:
     needs: [discover, render-overlay]
     if: needs.discover.outputs.update == 'true'
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         include:
           - name: amd64-default
@@ -281,6 +281,9 @@ jobs:
           auto-sync = no
           EOF
           echo "app-i18n/nimf ~${{ matrix.arch }}" >/etc/portage/package.accept_keywords/nimf
+          if [ "${{ matrix.arch }}" = arm64 ]; then
+            echo "app-i18n/libhangul ~arm64" >>/etc/portage/package.accept_keywords/nimf
+          fi
           cat >/etc/portage/package.use/nimf-ci <<'EOF'
           media-libs/freetype harfbuzz
           dev-libs/libdbusmenu gtk3
