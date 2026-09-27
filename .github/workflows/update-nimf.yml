@@ -298,7 +298,7 @@ jobs:
           media-libs/freetype harfbuzz
           dev-libs/libdbusmenu gtk3
           EOF
-          emerge --sync gentoo
+          emerge-webrsync -q
       - name: Install QA tools and build dependencies
         env:
           USE: ${{ matrix.use_flags }}
