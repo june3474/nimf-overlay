@@ -43,7 +43,7 @@ jobs:
             sha256: 48b9e79220941665a9dd827548c6428f7aa3052ccba8f4f7e039a94aa1d2b28a
             url: https://download.qt.io/archive/qt/5.14/5.14.2/submodules/qtbase-everywhere-src-5.14.2.tar.xz
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - uses: docker/login-action@v3

@@ -28,7 +28,7 @@ jobs:
       arm64_url: ${{ steps.release.outputs.arm64_url }}
       commit: ${{ steps.source.outputs.commit }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - id: release
@@ -38,7 +38,7 @@ jobs:
         run: ./scripts/discover-release.sh "$GITHUB_OUTPUT" "${{ inputs.version }}"
       - name: Checkout the exact upstream tag
         if: steps.release.outputs.update == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: hamonikr/nimf
           ref: ${{ steps.release.outputs.tag }}
@@ -63,10 +63,10 @@ jobs:
       matrix:
         qt: ["5.11", "5.12", "5.13", "5.14"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: hamonikr/nimf
           ref: ${{ needs.discover.outputs.commit }}
@@ -108,7 +108,7 @@ jobs:
           - arch: amd64
           - arch: arm64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - name: Download and validate Bookworm package
@@ -140,7 +140,7 @@ jobs:
       amd64_bundle: ${{ steps.names.outputs.amd64 }}
       arm64_bundle: ${{ steps.names.outputs.arm64 }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - uses: actions/download-artifact@v4
@@ -203,7 +203,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - uses: actions/download-artifact@v4
@@ -264,7 +264,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - uses: actions/download-artifact@v4
@@ -309,7 +309,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: true
       - uses: actions/download-artifact@v4
