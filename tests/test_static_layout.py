@@ -83,6 +83,8 @@ class OverlayLayoutTest(unittest.TestCase):
         self.assertIn("5.14", update)
         self.assertIn("arm64", update)
         self.assertIn("prerelease", update)
+        self.assertIn("emerge --sync gentoo", update)
+        self.assertNotIn("emerge --sync --repo", update)
         finalize = self.read(".github/workflows/finalize-release.yml")
         self.assertIn("--prerelease=false", finalize)
 

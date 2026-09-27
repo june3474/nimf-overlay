@@ -281,7 +281,7 @@ jobs:
           auto-sync = no
           EOF
           echo "app-i18n/nimf ~${{ matrix.arch }}" >/etc/portage/package.accept_keywords/nimf
-          emerge --sync --repo gentoo
+          emerge --sync gentoo
       - name: Install QA tools and build dependencies
         env:
           USE: ${{ matrix.use_flags }}
