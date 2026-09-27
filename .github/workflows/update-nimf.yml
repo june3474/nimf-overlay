@@ -273,7 +273,7 @@ jobs:
           path: app-i18n/nimf
       - name: Configure Gentoo repositories
         run: |
-          mkdir -p /etc/portage/repos.conf /etc/portage/package.accept_keywords
+          mkdir -p /etc/portage/repos.conf /etc/portage/package.accept_keywords /etc/portage/package.use
           cat >/etc/portage/repos.conf/nimf-overlay.conf <<EOF
           [nimf-overlay]
           location = ${GITHUB_WORKSPACE}
@@ -281,6 +281,10 @@ jobs:
           auto-sync = no
           EOF
           echo "app-i18n/nimf ~${{ matrix.arch }}" >/etc/portage/package.accept_keywords/nimf
+          cat >/etc/portage/package.use/nimf-ci <<'EOF'
+          media-libs/freetype harfbuzz
+          dev-libs/libdbusmenu gtk3
+          EOF
           emerge --sync gentoo
       - name: Install QA tools and build dependencies
         env:

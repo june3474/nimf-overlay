@@ -85,6 +85,8 @@ class OverlayLayoutTest(unittest.TestCase):
         self.assertIn("prerelease", update)
         self.assertIn("emerge --sync gentoo", update)
         self.assertNotIn("emerge --sync --repo", update)
+        self.assertIn("media-libs/freetype harfbuzz", update)
+        self.assertIn("dev-libs/libdbusmenu gtk3", update)
         finalize = self.read(".github/workflows/finalize-release.yml")
         self.assertIn("--prerelease=false", finalize)
 
