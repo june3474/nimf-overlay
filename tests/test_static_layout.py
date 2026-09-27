@@ -36,8 +36,13 @@ class OverlayLayoutTest(unittest.TestCase):
             'gio-querymodules',
         ):
             self.assertIn(fragment, ebuild)
-        self.assertRegex(ebuild, r'usex gtk4 4 3')
+        self.assertIn('--with-gtk=3', ebuild)
+        self.assertNotRegex(ebuild, r'usex gtk4 4 3')
         self.assertNotIn("QT_PLUGIN_PATH", ebuild)
+
+        metadata = self.read("app-i18n/nimf/metadata.xml")
+        self.assertIn("Build the GTK 4 input method module", metadata)
+        self.assertNotIn("use GTK 4 for nimf-settings", metadata)
 
     def test_qt5_versions_are_declared_once(self) -> None:
         versions = self.read("config/qt5-sdks.tsv")

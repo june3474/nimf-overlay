@@ -2,7 +2,9 @@
 
 Gentoo overlay for [hamonikr/nimf](https://github.com/hamonikr/nimf). GTK 3,
 Qt 6 and Wayland support are built against Gentoo packages. Optional GTK 2,
-GTK 4 and input engines are controlled with USE flags. Qt 5 plugins are built
+GTK 4 and input engines are controlled with USE flags. The GTK 4 flag builds
+the input method module; `nimf-settings` remains on GTK 3 because its current
+source still uses GTK 3 APIs. Qt 5 plugins are built
 in isolated SDK images because Gentoo no longer ships Qt 5.
 
 The current bootstrap ebuild points at release artifacts produced by this

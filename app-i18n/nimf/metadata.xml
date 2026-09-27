@@ -15,6 +15,6 @@
     <flag name="rime">Build the Rime input engine</flag>
     <flag name="qt5">Install separately built Qt 5 input context plugins and the eselect selector</flag>
     <flag name="gtk2">Build the GTK 2 input method module</flag>
-    <flag name="gtk4">Build the GTK 4 input method module and use GTK 4 for nimf-settings</flag>
+    <flag name="gtk4">Build the GTK 4 input method module</flag>
   </use>
 </pkgmetadata>

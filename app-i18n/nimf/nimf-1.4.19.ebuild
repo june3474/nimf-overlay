@@ -90,7 +90,7 @@ src_configure() {
 		--enable-qt6
 		--without-im-config-data
 		--without-imsettings-data
-		--with-gtk="$(usex gtk4 4 3)"
+		--with-gtk=3
 		$(use_enable X x11)
 		$(use_enable gtk2)
 		$(use_enable gtk4)
