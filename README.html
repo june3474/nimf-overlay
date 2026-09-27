@@ -161,11 +161,16 @@ a link to the matching versioned file in
 <code>/usr/lib64/nimf/qt5/&lt;minor&gt;/platforminputcontexts/</code>.</div>
 
 <h2>Environment variables for graphical sessions</h2>
-<p>Set these when starting a graphical session so both GTK and Qt
-applications route input through nimf:</p>
-<pre><code>GTK_IM_MODULE=nimf
-QT_IM_MODULE=nimf
-XMODIFIERS=@im=nimf</code></pre>
+<p>Add the following to <code>~/.xprofile</code>, <code>/etc/xprofile</code>, or a shell script under
+<code>/etc/X11/xinit/xinitrc.d/</code>:</p>
+<pre><code>export GTK_IM_MODULE=nimf
+export QT4_IM_MODULE="nimf"
+export QT_IM_MODULE=nimf
+export QT6_IM_MODULE=nimf
+export XMODIFIERS="@im=nimf"</code></pre>
+<p>After uninstalling Nimf, remove those assignments from the configuration file and clear
+them from the current shell:</p>
+<pre><code>unset GTK_IM_MODULE QT4_IM_MODULE QT_IM_MODULE QT6_IM_MODULE XMODIFIERS</code></pre>
 
 <h2>Automation</h2>
 <p>Every Monday at 03:17 UTC (12:17 Korea time), the workflow checks for the
@@ -235,11 +240,15 @@ eselect nimf-qt5 set 5.13</code></pre>
   한컴오피스의 한글 입력 시스템을 건드리지 않습니다.</p>
 
 <h2>그래픽 세션 환경변수</h2>
-<p>그래픽 세션을 시작할 때 다음 세 변수를 설정하면 GTK와 Qt 애플리케이션
-모두 nimf를 통해 입력을 처리합니다:</p>
-<pre><code>GTK_IM_MODULE=nimf
-QT_IM_MODULE=nimf
-XMODIFIERS=@im=nimf</code></pre>
+<p><code>~/.xprofile</code>, <code>/etc/xprofile</code> 또는
+<code>/etc/X11/xinit/xinitrc.d/</code> 아래의 셸 스크립트에 다음 내용을 추가할 수 있습니다:</p>
+<pre><code>export GTK_IM_MODULE=nimf
+export QT4_IM_MODULE="nimf"
+export QT_IM_MODULE=nimf
+export QT6_IM_MODULE=nimf
+export XMODIFIERS="@im=nimf"</code></pre>
+<p>nimf를 제거한 뒤에는 위 설정을 파일에서 제거하고 현재 셸에서 다음과 같이 해제할 수 있습니다:</p>
+<pre><code>unset GTK_IM_MODULE QT4_IM_MODULE QT_IM_MODULE QT6_IM_MODULE XMODIFIERS</code></pre>
 
 <h2>자동화</h2>
 <p>매주 월요일 03:17 UTC(한국 시간 12:17)에 hamonikr/nimf의 최신

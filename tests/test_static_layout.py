@@ -115,9 +115,26 @@ class OverlayLayoutTest(unittest.TestCase):
         self.assertIn("eselect nimf-qt5", readme)
         self.assertIn("QT_IM_MODULE=nimf", readme)
         self.assertIn("GTK_IM_MODULE=nimf", readme)
-        self.assertIn("XMODIFIERS=@im=nimf", readme)
-        self.assertIn("/opt/hoffice11", readme)
+        self.assertIn('XMODIFIERS="@im=nimf"', readme)
+        self.assertIn("한컴오피스", self.read("README.html"))
         self.assertNotIn("export QT_PLUGIN_PATH", readme)
+
+    def test_install_and_uninstall_environment_messages(self) -> None:
+        ebuild = self.read("app-i18n/nimf/nimf-1.4.19.ebuild")
+        for message in (
+            'elog "To use Nimf as your input method framework,"',
+            'elog "set the following environment variables in ~/.xprofile or /etc/xprofile."',
+            'elog "Alternatively, create a shell script under /etc/X11/xinit/xinitrc.d/."',
+            'elog "export GTK_IM_MODULE=nimf"',
+            "elog 'export QT4_IM_MODULE=\"nimf\"'",
+            'elog "export QT_IM_MODULE=nimf"',
+            'elog "export QT6_IM_MODULE=nimf"',
+            "elog 'export XMODIFIERS=\"@im=nimf\"'",
+            'elog "Nimf has been removed."',
+            'elog "unset GTK_IM_MODULE QT4_IM_MODULE QT_IM_MODULE QT6_IM_MODULE XMODIFIERS"',
+        ):
+            self.assertIn(message, ebuild)
+        self.assertNotIn('einfo "Set GTK_IM_MODULE=', ebuild)
 
 
 if __name__ == "__main__":

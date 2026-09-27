@@ -64,10 +64,22 @@ eselect nimf-qt5 set 5.13
 그래픽 세션을 시작할 때 다음 값을 설정하면 GTK와 Qt 애플리케이션
 모두 nimf를 통해 입력을 처리합니다:
 
-```text
-GTK_IM_MODULE=nimf
-QT_IM_MODULE=nimf
-XMODIFIERS=@im=nimf
+`~/.xprofile`, `/etc/xprofile` 또는 `/etc/X11/xinit/xinitrc.d/` 아래의
+셸 스크립트에 다음 내용을 추가할 수 있습니다:
+
+```bash
+export GTK_IM_MODULE=nimf
+export QT4_IM_MODULE="nimf"
+export QT_IM_MODULE=nimf
+export QT6_IM_MODULE=nimf
+export XMODIFIERS="@im=nimf"
+```
+
+nimf를 제거한 뒤에는 위 설정을 파일에서 제거하고, 현재 셸에서는 다음과
+같이 해제할 수 있습니다:
+
+```bash
+unset GTK_IM_MODULE QT4_IM_MODULE QT_IM_MODULE QT6_IM_MODULE XMODIFIERS
 ```
 
 ## 자동화

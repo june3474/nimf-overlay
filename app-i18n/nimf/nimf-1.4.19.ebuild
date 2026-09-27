@@ -143,7 +143,15 @@ pkg_postinst() {
 		eselect nimf-qt5 set 5.15
 	fi
 
-	einfo "Set GTK_IM_MODULE=nimf, QT_IM_MODULE=nimf and XMODIFIERS=@im=nimf in your session."
+	elog "To use Nimf as your input method framework,"
+	elog "set the following environment variables in ~/.xprofile or /etc/xprofile."
+	elog "Alternatively, create a shell script under /etc/X11/xinit/xinitrc.d/."
+	elog ""
+	elog "export GTK_IM_MODULE=nimf"
+	elog 'export QT4_IM_MODULE="nimf"'
+	elog "export QT_IM_MODULE=nimf"
+	elog "export QT6_IM_MODULE=nimf"
+	elog 'export XMODIFIERS="@im=nimf"'
 }
 
 pkg_postrm() {
@@ -158,5 +166,12 @@ pkg_postrm() {
 		if [[ -L ${selector} && $(readlink "${selector}") == /usr/$(get_libdir)/nimf/qt5/* ]]; then
 			rm -f "${selector}" || die
 		fi
+
+		elog "Nimf has been removed."
+		elog "Remove the Nimf environment variable assignments from ~/.xprofile,"
+		elog "/etc/xprofile, or scripts under /etc/X11/xinit/xinitrc.d/."
+		elog "To clear them from the current shell, run:"
+		elog ""
+		elog "unset GTK_IM_MODULE QT4_IM_MODULE QT_IM_MODULE QT6_IM_MODULE XMODIFIERS"
 	fi
 }
