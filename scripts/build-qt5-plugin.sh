@@ -18,6 +18,7 @@ trap 'rm -rf "${build_dir}"' EXIT
 cat >"${build_dir}/nimf-qt5.pro" <<EOF
 TEMPLATE = lib
 CONFIG += plugin release c++11 link_pkgconfig
+CONFIG += no_qt_rpath
 CONFIG -= debug
 QT += core gui widgets core-private gui-private
 TARGET = qt5im-nimf
@@ -27,7 +28,7 @@ INCLUDEPATH += ${source_dir}/libnimf
 PKGCONFIG += glib-2.0 gio-2.0 gobject-2.0
 DEFINES += NIMF_COMPILATION USE_DLFCN QT_NO_KEYWORDS
 LIBS += -ldl
-QMAKE_LFLAGS += -Wl,--as-needed -Wl,-z,defs
+QMAKE_LFLAGS += -Wl,--as-needed -Wl,-z,defs -Wl,-soname,libqt5im-nimf.so
 EOF
 
 "${qmake_bin}" "${build_dir}/nimf-qt5.pro" -o "${build_dir}/Makefile"

@@ -60,6 +60,11 @@ class OverlayLayoutTest(unittest.TestCase):
         self.assertIn("e094806951ff7337b5b0c534db479e3808f153a7", patch)
         self.assertIn("containers/qt5-sdk/patches/**", workflow)
 
+    def test_qt5_plugin_has_portable_linker_metadata(self) -> None:
+        build = self.read("scripts/build-qt5-plugin.sh")
+        self.assertIn("CONFIG += no_qt_rpath", build)
+        self.assertIn("-Wl,-soname,libqt5im-nimf.so", build)
+
     def test_workflows_match_release_policy(self) -> None:
         update = self.read(".github/workflows/update-nimf.yml")
         self.assertIn('cron: "17 3 * * 1"', update)
