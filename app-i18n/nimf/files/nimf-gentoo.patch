@@ -1,0 +1,76 @@
+diff --git a/configure.ac b/configure.ac
+index 740dc81..bfbc0a7 100755
+--- a/configure.ac
++++ b/configure.ac
+@@ -121,7 +121,12 @@ dnl im-nimf-qt5
+ dnl ***************************************************************************
+ 
+ # Check for Qt5
+-PKG_CHECK_MODULES(IM_NIMF_QT5_DEPS, [Qt5Core Qt5Gui Qt5Widgets], [has_qt5=yes], [has_qt5=no])
++AC_ARG_ENABLE([qt5],
++  AS_HELP_STRING([--disable-qt5], [Disable Qt5 support]))
++
++AS_IF([test "x$enable_qt5" != "xno"],
++      [PKG_CHECK_MODULES(IM_NIMF_QT5_DEPS, [Qt5Core Qt5Gui Qt5Widgets], [has_qt5=yes], [has_qt5=no])],
++      [has_qt5=no])
+ AM_CONDITIONAL([HAVE_QT5], [test "x$has_qt5" = "xyes"])
+ AS_IF([test "x$has_qt5" = "xyes"], [
+ QT5_VERSION=`pkg-config --modversion Qt5Core`
+@@ -334,16 +339,6 @@ if test "x$have_gtk2" = "xyes"; then
+   fi
+ fi
+ 
+-if test "x$have_gtk4" = "xyes"; then
+-  AC_PATH_PROGS([GTK_QUERY_IMMODULES4],
+-                [gtk4-query-immodules gtk4-query-immodules-$BITS], [no],
+-                [/usr/bin:/usr/lib/x86_64-linux-gnu/libgtk-4-1:\
+-/usr/lib/aarch64-linux-gnu/libgtk-4-1])
+-  if test "x$GTK_QUERY_IMMODULES4" = "xno"; then
+-    AC_MSG_WARN([gtk4-query-immodules not found, GTK4 IM module cache will not be updated])
+-  fi
+-fi
+-
+ dnl ***************************************************************************
+ dnl  icon cache
+ dnl ***************************************************************************
+@@ -461,7 +456,7 @@ dnl ***************************************************************************
+ 
+ AC_ARG_WITH([im-config-data],
+   AS_HELP_STRING([--with-im-config-data], [Install im-config data]),
+-  [with_im_config_data=yes])
++  [with_im_config_data=$withval])
+ 
+ AM_CONDITIONAL([WITH_IM_CONFIG_DATA],
+                [test "$with_im_config_data" = "yes"])
+@@ -472,7 +467,7 @@ dnl ***************************************************************************
+ 
+ AC_ARG_WITH([imsettings-data],
+   AS_HELP_STRING([--with-imsettings-data], [Install imsettings data]),
+-  [with_imsettings_data=yes])
++  [with_imsettings_data=$withval])
+ 
+ AM_CONDITIONAL([WITH_IMSETTINGS_DATA],
+                [test "$with_imsettings_data" = "yes"])
+diff --git a/modules/clients/gtk/Makefile.am b/modules/clients/gtk/Makefile.am
+index 631348a..90711e0 100755
+--- a/modules/clients/gtk/Makefile.am
++++ b/modules/clients/gtk/Makefile.am
+@@ -53,9 +53,6 @@ endif
+ if HAVE_GTK4
+ 	chmod -x $(DESTDIR)$(gtk4_im_moduledir)/libim-nimf-gtk4.so
+ 	rm -f $(DESTDIR)$(gtk4_im_moduledir)/libim-nimf-gtk4.la
+-	if test "x$(GTK_QUERY_IMMODULES4)" != "xno"; then \
+-		$(GTK_QUERY_IMMODULES4) --update-cache; \
+-	fi
+ endif
+ 
+ uninstall-hook:
+@@ -68,8 +65,3 @@ if HAVE_GTK4
+ endif
+ 	$(GTK_QUERY_IMMODULES2) --update-cache
+ 	$(GTK_QUERY_IMMODULES3) --update-cache
+-if HAVE_GTK4
+-	if test "x$(GTK_QUERY_IMMODULES4)" != "xno"; then \
+-		$(GTK_QUERY_IMMODULES4) --update-cache; \
+-	fi
+-endif

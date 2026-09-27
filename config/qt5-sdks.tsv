@@ -1,0 +1,5 @@
+# minor	version	sha256	archive URL
+5.11	5.11.3	c6bf887732b83ce072eb72eddb7497bedcdf9ca794e7ed91261a93f063623e1c	https://download.qt.io/archive/qt/5.11/5.11.3/submodules/qtbase-everywhere-src-5.11.3.tar.xz
+5.12	5.12.12	7c15c31590b6ec12408242b1a32075d1d545f35e1d41fdbad31ec670d00680f2	https://download.qt.io/archive/qt/5.12/5.12.12/submodules/qtbase-everywhere-src-5.12.12.tar.xz
+5.13	5.13.2	26b6b686d66a7ad28eaca349e55e2894e5a735f3831e45f2049e93b1daa92121	https://download.qt.io/archive/qt/5.13/5.13.2/submodules/qtbase-everywhere-src-5.13.2.tar.xz
+5.14	5.14.2	48b9e79220941665a9dd827548c6428f7aa3052ccba8f4f7e039a94aa1d2b28a	https://download.qt.io/archive/qt/5.14/5.14.2/submodules/qtbase-everywhere-src-5.14.2.tar.xz

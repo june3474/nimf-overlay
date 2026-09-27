@@ -1,0 +1,78 @@
+# -*-eselect-*-  vim: ft=eselect
+# shellcheck shell=bash disable=SC2034
+# Copyright 2026 Gentoo Authors
+# Distributed under the terms of the GNU General Public License v2
+
+DESCRIPTION="Select the system-wide Nimf Qt 5 input context plugin"
+MAINTAINER="june3474@gmail.com"
+VERSION="1.0.0"
+
+nimf_qt5_libdir() {
+	if [[ -n ${NIMF_QT5_LIBDIR:-} ]]; then
+		printf '%s\n' "${NIMF_QT5_LIBDIR}"
+	elif [[ -d ${ROOT%/}/usr/lib64/nimf/qt5 ]]; then
+		printf '%s\n' lib64
+	else
+		printf '%s\n' lib
+	fi
+}
+
+NIMF_QT5_LIBDIR=$(nimf_qt5_libdir)
+NIMF_QT5_BASE="${ROOT%/}/usr/${NIMF_QT5_LIBDIR}/nimf/qt5"
+NIMF_QT5_LINK="${ROOT%/}/usr/${NIMF_QT5_LIBDIR}/qt5/plugins/platforminputcontexts/libqt5im-nimf.so"
+
+get_versions() {
+	local path version
+	for path in "${NIMF_QT5_BASE}"/*/platforminputcontexts/libqt5im-nimf.so; do
+		[[ -f ${path} ]] || continue
+		version=${path#"${NIMF_QT5_BASE}/"}
+		printf '%s\n' "${version%%/*}"
+	done | sort -V
+}
+
+get_selected_version() {
+	local target
+	[[ -L ${NIMF_QT5_LINK} ]] || return 1
+	target=$(readlink "${NIMF_QT5_LINK}")
+	target=${target#/usr/"${NIMF_QT5_LIBDIR}"/nimf/qt5/}
+	[[ ${target} == */platforminputcontexts/libqt5im-nimf.so ]] || return 1
+	printf '%s\n' "${target%%/*}"
+}
+
+describe_list() { echo "List installed Nimf Qt 5 plugins"; }
+do_list() {
+	local current version marker
+	current=$(get_selected_version 2>/dev/null || true)
+	write_list_start "Installed Nimf Qt 5 plugin versions"
+	while IFS= read -r version; do
+		[[ -n ${version} ]] || continue
+		marker=""
+		[[ ${version} == "${current}" ]] && marker="selected"
+		write_kv_list_entry "${version}" "${marker}"
+	done < <(get_versions)
+}
+
+describe_show() { echo "Show the selected Nimf Qt 5 plugin"; }
+do_show() {
+	local selected
+	selected=$(get_selected_version 2>/dev/null || true)
+	[[ -n ${selected} ]] || selected="(unset)"
+	write_list_start "Selected Nimf Qt 5 plugin"
+	write_kv_list_entry "${selected}" ""
+}
+
+describe_set() { echo "Select a Nimf Qt 5 plugin version"; }
+describe_set_parameters() { echo "<5.11|5.12|5.13|5.14|5.15>"; }
+do_set() {
+	[[ $# -eq 1 ]] || { die -q "Usage: eselect nimf-qt5 set <version>"; return 1; }
+	local version=$1
+	local source="${NIMF_QT5_BASE}/${version}/platforminputcontexts/libqt5im-nimf.so"
+	local link_dir=${NIMF_QT5_LINK%/*}
+	local public_target="/usr/${NIMF_QT5_LIBDIR}/nimf/qt5/${version}/platforminputcontexts/libqt5im-nimf.so"
+
+	[[ -f ${source} ]] || { die -q "Nimf Qt 5 plugin ${version} is not installed"; return 1; }
+	mkdir -p "${link_dir}" || die -q "Could not create ${link_dir}"
+	ln -sfn "${public_target}" "${NIMF_QT5_LINK}.new" || die -q "Could not create selector link"
+	mv -Tf "${NIMF_QT5_LINK}.new" "${NIMF_QT5_LINK}" || die -q "Could not activate ${version}"
+	write_list_start "Selected Nimf Qt ${version} input context plugin"
+}

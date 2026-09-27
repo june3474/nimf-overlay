@@ -1,0 +1,336 @@
+name: Update Nimf release
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Upstream version to rebuild, for example 1.4.19
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nimf-weekly-update
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    runs-on: ubuntu-24.04
+    outputs:
+      update: ${{ steps.release.outputs.update }}
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+      amd64_url: ${{ steps.release.outputs.amd64_url }}
+      arm64_url: ${{ steps.release.outputs.arm64_url }}
+      commit: ${{ steps.source.outputs.commit }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - id: release
+        name: Find latest stable upstream release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./scripts/discover-release.sh "$GITHUB_OUTPUT" "${{ inputs.version }}"
+      - name: Checkout the exact upstream tag
+        if: steps.release.outputs.update == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: hamonikr/nimf
+          ref: ${{ steps.release.outputs.tag }}
+          path: upstream
+          persist-credentials: false
+      - id: source
+        if: steps.release.outputs.update == 'true'
+        name: Validate tag and configure.ac version
+        run: |
+          ./scripts/validate-upstream.sh upstream "${{ steps.release.outputs.version }}" "${{ steps.release.outputs.tag }}"
+          echo "commit=$(git -C upstream rev-parse HEAD)" >>"$GITHUB_OUTPUT"
+
+  build-old-qt:
+    needs: discover
+    if: needs.discover.outputs.update == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+    strategy:
+      fail-fast: true
+      matrix:
+        qt: ["5.11", "5.12", "5.13", "5.14"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: hamonikr/nimf
+          ref: ${{ needs.discover.outputs.commit }}
+          path: upstream
+          persist-credentials: false
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Build and load-test Qt plugin
+        run: |
+          mkdir -p "${RUNNER_TEMP}/plugin/${{ matrix.qt }}"
+          docker pull "ghcr.io/${GITHUB_REPOSITORY_OWNER}/nimf-overlay/qt5-sdk:${{ matrix.qt }}"
+          docker logout ghcr.io
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp \
+            -v "$GITHUB_WORKSPACE/upstream:/source:ro" \
+            -v "${RUNNER_TEMP}/plugin/${{ matrix.qt }}:/output" \
+            "ghcr.io/${GITHUB_REPOSITORY_OWNER}/nimf-overlay/qt5-sdk:${{ matrix.qt }}" \
+            /source /output
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qt5-${{ matrix.qt }}-amd64
+          path: ${{ runner.temp }}/plugin/${{ matrix.qt }}/libqt5im-nimf.so
+          if-no-files-found: error
+
+  extract-bookworm:
+    needs: discover
+    if: needs.discover.outputs.update == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - arch: amd64
+          - arch: arm64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download and validate Bookworm package
+        env:
+          AMD64_URL: ${{ needs.discover.outputs.amd64_url }}
+          ARM64_URL: ${{ needs.discover.outputs.arm64_url }}
+        run: |
+          url="${AMD64_URL}"
+          if [[ "${{ matrix.arch }}" == arm64 ]]; then url="${ARM64_URL}"; fi
+          curl -fL --retry 3 -o "${RUNNER_TEMP}/nimf.deb" "$url"
+          mkdir -p "${RUNNER_TEMP}/plugin"
+          ./scripts/extract-bookworm-plugin.sh \
+            "${RUNNER_TEMP}/nimf.deb" "${{ matrix.arch }}" \
+            "${{ needs.discover.outputs.version }}" \
+            "${RUNNER_TEMP}/plugin/libqt5im-nimf.so"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qt5-5.15-${{ matrix.arch }}
+          path: ${{ runner.temp }}/plugin/libqt5im-nimf.so
+          if-no-files-found: error
+
+  publish-prerelease:
+    needs: [discover, build-old-qt, extract-bookworm]
+    if: needs.discover.outputs.update == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    outputs:
+      amd64_bundle: ${{ steps.names.outputs.amd64 }}
+      arm64_bundle: ${{ steps.names.outputs.arm64 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: qt5-*
+          path: ${{ runner.temp }}/collected
+      - name: Assemble architecture bundles
+        id: names
+        run: |
+          for minor in 5.11 5.12 5.13 5.14 5.15; do
+            mkdir -p "${RUNNER_TEMP}/plugins-amd64/${minor}"
+            cp "${RUNNER_TEMP}/collected/qt5-${minor}-amd64/libqt5im-nimf.so" \
+               "${RUNNER_TEMP}/plugins-amd64/${minor}/"
+          done
+          mkdir -p "${RUNNER_TEMP}/plugins-arm64/5.15"
+          cp "${RUNNER_TEMP}/collected/qt5-5.15-arm64/libqt5im-nimf.so" \
+             "${RUNNER_TEMP}/plugins-arm64/5.15/"
+          amd64="nimf-qt5-plugins-${{ needs.discover.outputs.version }}-amd64.tar.xz"
+          arm64="nimf-qt5-plugins-${{ needs.discover.outputs.version }}-arm64.tar.xz"
+          SOURCE_DATE_EPOCH=0 ./scripts/make-qt5-bundle.sh \
+            --nimf-version "${{ needs.discover.outputs.version }}" \
+            --upstream-commit "${{ needs.discover.outputs.commit }}" \
+            --arch amd64 --plugins-dir "${RUNNER_TEMP}/plugins-amd64" \
+            --output "${RUNNER_TEMP}/${amd64}"
+          SOURCE_DATE_EPOCH=0 ./scripts/make-qt5-bundle.sh \
+            --nimf-version "${{ needs.discover.outputs.version }}" \
+            --upstream-commit "${{ needs.discover.outputs.commit }}" \
+            --arch arm64 --plugins-dir "${RUNNER_TEMP}/plugins-arm64" \
+            --output "${RUNNER_TEMP}/${arm64}"
+          (cd "${RUNNER_TEMP}" && sha256sum "${amd64}" "${arm64}" >SHA256SUMS)
+          echo "amd64=${amd64}" >>"$GITHUB_OUTPUT"
+          echo "arm64=${arm64}" >>"$GITHUB_OUTPUT"
+      - name: Upload public prerelease assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="nimf-${{ needs.discover.outputs.version }}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" --prerelease --latest=false
+          else
+            gh release create "$tag" --prerelease --latest=false \
+              --title "Nimf ${{ needs.discover.outputs.version }} Qt 5 plugins" \
+              --notes "Automated Qt 5 compatibility artifacts for Nimf ${{ needs.discover.outputs.version }}."
+          fi
+          gh release upload "$tag" --clobber \
+            "${RUNNER_TEMP}/${{ steps.names.outputs.amd64 }}" \
+            "${RUNNER_TEMP}/${{ steps.names.outputs.arm64 }}" \
+            "${RUNNER_TEMP}/SHA256SUMS"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qt5-bundles
+          path: |
+            ${{ runner.temp }}/${{ steps.names.outputs.amd64 }}
+            ${{ runner.temp }}/${{ steps.names.outputs.arm64 }}
+
+  render-overlay:
+    needs: [discover, publish-prerelease]
+    if: needs.discover.outputs.update == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: qt5-bundles
+          path: ${{ runner.temp }}/distfiles
+      - name: Generate ebuild and Manifest
+        run: |
+          version="${{ needs.discover.outputs.version }}"
+          source="nimf-${version}.tar.gz"
+          curl -fL --retry 3 \
+            -o "${RUNNER_TEMP}/distfiles/${source}" \
+            "https://github.com/hamonikr/nimf/archive/refs/tags/v${version}.tar.gz"
+          ./scripts/render-ebuild.sh "$version"
+          ./scripts/write-manifest.py \
+            --distdir "${RUNNER_TEMP}/distfiles" \
+            --output app-i18n/nimf/Manifest \
+            "$source" \
+            "${{ needs.publish-prerelease.outputs.amd64_bundle }}" \
+            "${{ needs.publish-prerelease.outputs.arm64_bundle }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overlay-update
+          path: |
+            app-i18n/nimf/nimf-${{ needs.discover.outputs.version }}.ebuild
+            app-i18n/nimf/Manifest
+          if-no-files-found: error
+
+  validate:
+    needs: [discover, render-overlay]
+    if: needs.discover.outputs.update == 'true'
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: amd64-default
+            runner: ubuntu-24.04
+            arch: amd64
+            use_flags: "X gtk2 gtk4 hangul qt5 -anthy -m17n -rime"
+          - name: amd64-minimal-engine
+            runner: ubuntu-24.04
+            arch: amd64
+            use_flags: "X -gtk2 -gtk4 hangul qt5 -anthy -m17n -rime"
+          - name: amd64-full
+            runner: ubuntu-24.04
+            arch: amd64
+            use_flags: "X gtk2 gtk4 hangul qt5 anthy m17n rime"
+          - name: amd64-no-qt5
+            runner: ubuntu-24.04
+            arch: amd64
+            use_flags: "X gtk2 gtk4 hangul -qt5 -anthy -m17n -rime"
+          - name: arm64-default
+            runner: ubuntu-24.04-arm
+            arch: arm64
+            use_flags: "X gtk2 gtk4 hangul qt5 -anthy -m17n -rime"
+    runs-on: ${{ matrix.runner }}
+    container: gentoo/stage3:latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: overlay-update
+          path: app-i18n/nimf
+      - name: Configure Gentoo repositories
+        run: |
+          mkdir -p /etc/portage/repos.conf /etc/portage/package.accept_keywords
+          cat >/etc/portage/repos.conf/nimf-overlay.conf <<EOF
+          [nimf-overlay]
+          location = ${GITHUB_WORKSPACE}
+          masters = gentoo
+          auto-sync = no
+          EOF
+          echo "app-i18n/nimf ~${{ matrix.arch }}" >/etc/portage/package.accept_keywords/nimf
+          emerge --sync --repo gentoo
+      - name: Install QA tools and build dependencies
+        env:
+          USE: ${{ matrix.use_flags }}
+          FEATURES: getbinpkg
+        run: |
+          emerge --noreplace dev-util/pkgcheck dev-util/pkgdev
+          emerge --onlydeps --noreplace "=app-i18n/nimf-${{ needs.discover.outputs.version }}"
+      - name: Run pkgcheck and all ebuild phases
+        env:
+          USE: ${{ matrix.use_flags }}
+        run: |
+          cp app-i18n/nimf/Manifest /tmp/Manifest.generated
+          pkgdev manifest -d /var/cache/distfiles \
+            "app-i18n/nimf/nimf-${{ needs.discover.outputs.version }}.ebuild"
+          cmp /tmp/Manifest.generated app-i18n/nimf/Manifest
+          pkgcheck scan --exit error app-i18n/nimf
+          ebuild "app-i18n/nimf/nimf-${{ needs.discover.outputs.version }}.ebuild" \
+            clean unpack prepare configure compile install
+
+  create-pr:
+    needs: [discover, render-overlay, validate]
+    if: needs.discover.outputs.update == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: overlay-update
+          path: app-i18n/nimf
+      - name: Commit update branch and open PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${{ needs.discover.outputs.version }}"
+          branch="update/nimf-${version}"
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git switch -C "$branch"
+          git add app-i18n/nimf
+          git commit -m "app-i18n/nimf: add ${version}"
+          git push --force-with-lease origin "$branch"
+          if ! gh pr view "$branch" >/dev/null 2>&1; then
+            gh pr create \
+              --base main --head "$branch" \
+              --title "app-i18n/nimf: add ${version}" \
+              --body "Build Qt 5.11-5.15 compatibility artifacts and add the tested Nimf ${version} ebuild."
+          fi

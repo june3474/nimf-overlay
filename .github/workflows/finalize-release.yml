@@ -1,0 +1,29 @@
+name: Finalize Nimf artifact release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - app-i18n/nimf/nimf-*.ebuild
+      - app-i18n/nimf/Manifest
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Promote the newest matching prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(find app-i18n/nimf -maxdepth 1 -name 'nimf-*.ebuild' -printf '%f\n' \
+            | sed -n 's/^nimf-\(.*\)\.ebuild$/\1/p' | sort -V | tail -1)
+          test -n "$version"
+          grep -q "nimf-qt5-plugins-${version}-amd64.tar.xz" app-i18n/nimf/Manifest || exit 0
+          gh release view "nimf-${version}" >/dev/null 2>&1 || exit 0
+          gh release edit "nimf-${version}" --prerelease=false --latest=true

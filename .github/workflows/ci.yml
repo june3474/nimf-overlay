@@ -1,0 +1,32 @@
+name: Overlay CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  static:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install static analysis tools
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: Run repository tests
+        run: ./tests/run.sh
+      - name: Check shell scripts
+        run: shellcheck scripts/*.sh tests/*.sh app-i18n/nimf/files/nimf-qt5.eselect
+      - name: Checkout upstream source for patch validation
+        uses: actions/checkout@v4
+        with:
+          repository: hamonikr/nimf
+          ref: v1.4.19
+          path: upstream
+          persist-credentials: false
+      - name: Validate Gentoo patch
+        run: patch -d upstream -p1 --dry-run < app-i18n/nimf/files/nimf-gentoo.patch

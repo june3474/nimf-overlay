@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
+<pkgmetadata>
+  <maintainer type="person">
+    <email>june3474@gmail.com</email>
+    <name>june3474</name>
+  </maintainer>
+  <upstream>
+    <remote-id type="github">hamonikr/nimf</remote-id>
+  </upstream>
+  <use>
+    <flag name="hangul">Build the libhangul Korean input engine</flag>
+    <flag name="anthy">Build the Anthy Japanese input engine</flag>
+    <flag name="m17n">Build input engines provided by m17n-db</flag>
+    <flag name="rime">Build the Rime input engine</flag>
+    <flag name="qt5">Install separately built Qt 5 input context plugins and the eselect selector</flag>
+    <flag name="gtk2">Build the GTK 2 input method module</flag>
+    <flag name="gtk4">Build the GTK 4 input method module and use GTK 4 for nimf-settings</flag>
+  </use>
+</pkgmetadata>
