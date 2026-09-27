@@ -8,6 +8,10 @@ qmake_bin=${QMAKE:-qmake}
 [[ -f ${source_dir}/modules/clients/qt5/im-nimf-qt5.cpp ]] || { echo "invalid Nimf source tree" >&2; exit 2; }
 command -v "${qmake_bin}" >/dev/null || { echo "qmake not found: ${qmake_bin}" >&2; exit 2; }
 actual_qt_version=$("${qmake_bin}" -query QT_VERSION)
+[[ ${actual_qt_version} =~ ^5\.[0-9]+\.[0-9]+$ ]] || {
+	echo "unsupported qmake version: ${actual_qt_version}" >&2
+	exit 1
+}
 if [[ -n ${QT_VERSION:-} && ${actual_qt_version} != "${QT_VERSION}" ]]; then
 	echo "SDK advertises Qt ${QT_VERSION}, qmake reports ${actual_qt_version}" >&2
 	exit 1
@@ -15,6 +19,10 @@ fi
 
 build_dir=$(mktemp -d)
 trap 'rm -rf "${build_dir}"' EXIT
+cat >"${build_dir}/nimf-qt-version.cpp" <<EOF
+extern "C" __attribute__((used, visibility("default")))
+const char nimf_qt_build_version[] = "NIMF_QT_BUILD_VERSION=${actual_qt_version}";
+EOF
 cat >"${build_dir}/nimf-qt5.pro" <<EOF
 TEMPLATE = lib
 CONFIG += plugin release c++11 link_pkgconfig
@@ -23,7 +31,7 @@ CONFIG -= debug
 QT += core gui widgets core-private gui-private
 TARGET = qt5im-nimf
 DESTDIR = ${build_dir}/out
-SOURCES = ${source_dir}/modules/clients/qt5/im-nimf-qt5.cpp
+SOURCES = ${source_dir}/modules/clients/qt5/im-nimf-qt5.cpp ${build_dir}/nimf-qt-version.cpp
 INCLUDEPATH += ${source_dir}/libnimf
 PKGCONFIG += glib-2.0 gio-2.0 gobject-2.0
 DEFINES += NIMF_COMPILATION USE_DLFCN QT_NO_KEYWORDS
