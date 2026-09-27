@@ -7,11 +7,6 @@ the input method module; `nimf-settings` remains on GTK 3 because its current
 source still uses GTK 3 APIs. Qt 5 plugins are built
 in isolated SDK images because Gentoo no longer ships Qt 5.
 
-The current bootstrap ebuild points at release artifacts produced by this
-repository. Run the **Update Nimf release** workflow once after publishing the
-repository; it builds the artifacts, creates a prerelease, regenerates the
-ebuild Manifest and opens the first version PR.
-
 ## Install
 
 ```bash
