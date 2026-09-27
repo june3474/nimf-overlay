@@ -274,6 +274,16 @@ jobs:
       - name: Configure Gentoo repositories
         run: |
           mkdir -p /etc/portage/repos.conf /etc/portage/package.accept_keywords /etc/portage/package.use
+          cat >/etc/portage/repos.conf/gentoo.conf <<'EOF'
+          [DEFAULT]
+          main-repo = gentoo
+
+          [gentoo]
+          location = /var/db/repos/gentoo
+          sync-type = rsync
+          sync-uri = rsync://rsync.gentoo.org/gentoo-portage
+          auto-sync = yes
+          EOF
           cat >/etc/portage/repos.conf/nimf-overlay.conf <<EOF
           [nimf-overlay]
           location = ${GITHUB_WORKSPACE}
