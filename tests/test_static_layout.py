@@ -62,8 +62,11 @@ class OverlayLayoutTest(unittest.TestCase):
 
     def test_qt5_plugin_has_portable_linker_metadata(self) -> None:
         build = self.read("scripts/build-qt5-plugin.sh")
+        verify = self.read("scripts/test-qt5-plugin.sh")
         self.assertIn("CONFIG += no_qt_rpath", build)
         self.assertIn("-Wl,-soname,libqt5im-nimf.so", build)
+        self.assertIn("QT_INSTALL_LIBS", verify)
+        self.assertIn("loader.errorString()", verify)
 
     def test_workflows_match_release_policy(self) -> None:
         update = self.read(".github/workflows/update-nimf.yml")

@@ -26,6 +26,7 @@ build_dir=$(mktemp -d)
 trap 'rm -rf "${build_dir}"' EXIT
 cat >"${build_dir}/verify.cpp" <<'CPP'
 #include <QCoreApplication>
+#include <QDebug>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QPluginLoader>
@@ -37,9 +38,14 @@ int main(int argc, char **argv) {
     QPluginLoader loader(QString::fromLocal8Bit(argv[1]));
     const QJsonObject metadata = loader.metaData().value("MetaData").toObject();
     const QJsonArray keys = metadata.value("Keys").toArray();
-    for (const QJsonValue &key : keys)
-        if (key.toString() == QStringLiteral("nimf"))
-            return loader.load() ? 0 : 3;
+    for (const QJsonValue &key : keys) {
+        if (key.toString() != QStringLiteral("nimf"))
+            continue;
+        if (loader.load())
+            return 0;
+        qCritical().noquote() << loader.errorString();
+        return 3;
+    }
     return 4;
 }
 CPP
@@ -52,4 +58,7 @@ TARGET = verify-nimf-plugin
 EOF
 "${qmake_bin}" "${build_dir}/verify.pro" -o "${build_dir}/Makefile"
 make -C "${build_dir}" -j"${JOBS:-$(nproc)}"
-QT_QPA_PLATFORM=offscreen "${build_dir}/verify-nimf-plugin" "$(realpath "${plugin}")"
+qt_libdir=$("${qmake_bin}" -query QT_INSTALL_LIBS)
+LD_LIBRARY_PATH="${qt_libdir}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" \
+	QT_QPA_PLATFORM=offscreen \
+	"${build_dir}/verify-nimf-plugin" "$(realpath "${plugin}")"
