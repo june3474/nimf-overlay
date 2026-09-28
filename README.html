@@ -117,71 +117,41 @@
 <h1>nimf-overlay</h1>
 <p class="subtitle">Gentoo overlay for <a href="https://github.com/hamonikr/nimf">hamonikr/nimf</a>.</p>
 
-<p>nimf supports GTK 3, Qt 6 and Wayland by default. Other input engines like GTK 2, GTK 4 can be added optionally via USE flags. Because Gentoo no longer ships Qt 5, its plugins are built
-and provided separately per version in isolated SDK image containers.<br />
-<code>nimf-settings</code> is built against its
-upstream source, currently GTK 3.</p>
+<p>The nimf ebuild supports GTK 3, Qt 6, and Wayland by default. Support for GTK 2 and GTK 4 can be added with USE flags. Because Gentoo no longer provides Qt 5, the Qt 5 plugins are built separately for each version in isolated SDK image containers.
+<code>nimf-settings</code> is built against the upstream source, currently GTK 3.</p>
 
-<h2>What this overlay is for?</h2>
-<p>On <strong>2026-06-30</strong>, the Qt 5 packages were masked in Gentoo's
-source tree. As a result, any Gentoo system synced after that date can no
-longer build nimf's Qt 5 input module, causing the whole  <code>nimf</code> build failure.</p>
-<p>But Qt 5 applications are still in use, and nimf's Qt 5 input module is
-still needed. This overlay provides a couple of ebuilds that lets you type and use Korean in Qt 5 applications via nimf, even on a Gentoo box where Qt 5
-itself can no longer be installed after 2026-06-30.</p>
+<h2>Why is this overlay needed?</h2>
+<p>On <strong>2026-06-30</strong>, the Qt 5 packages were masked in Gentoo's source tree. As a result, Gentoo systems synced after that date can no longer build nimf's Qt 5 input module, causing the entire <code>nimf</code> build to fail.</p>
+<p>Qt 5 applications are still in use, however, and nimf's Qt 5 input module is still needed. This overlay provides an ebuild that enables Korean input through nimf in Qt 5 applications, even on Gentoo systems where Qt 5 itself can no longer be installed after 2026-06-30.</p>
 
-<h2>Install</h2>
+<h2>Installation</h2>
 <pre><code>eselect repository add nimf-overlay git https://github.com/june3474/nimf-overlay.git
 emaint sync -r nimf-overlay
 emerge --ask app-i18n/nimf</code></pre>
-<p>The default configuration builds and installs GTK 2/3/4, Qt 6, Wayland,
-Hangul and the Qt 5 compatibility plugins. With <code>USE=-qt5</code>, the
-Qt 5 plugins are not installed.</p>
+<p>The default configuration builds and installs GTK 2/3/4, Qt 6, Wayland, Hangul, and the Qt 5 compatibility plugins. With <code>USE=-qt5</code>, the Qt 5 plugins are not installed.</p>
 
-<h2>Qt 5 support: why does need plugins per Qt 5 versions?</h2>
-<p>Qt 5's input plugins link against Qt5Core/Qt5Gui in ways
-that are not guaranteed ABI-stable across minor releases. A plugin built
-against Qt 5.11 headers and libraries is not guaranteed to load correctly
-inside an application process linked against Qt 5.15, and vice versa &mdash;
-there is no single binary that works for every 5.x minor version.</p>
-<p>To work around this, this ebuild builds and installs one <code>platforminputcontexts</code> plugin per Qt 5 minor version, from 5.11 through 5.15. However, only one of them can be active as the systemwide default at a
-time, so you have to choose which one applications should load with
-<code>eselect</code>.</p>
+<h2>Qt 5 support: why are separate plugins needed for each Qt 5 version?</h2>
+<p>Qt 5 input plugins link against Qt5Core/Qt5Gui without guaranteed ABI stability across minor releases. A plugin built against Qt 5.11 headers and libraries is not guaranteed to load correctly in an application process linked against Qt 5.15, and vice versa &mdash; there is no single binary that works with every Qt 5 minor version.</p>
+<p>To address this, the ebuild builds and installs one <code>platforminputcontexts</code> plugin for each Qt 5 minor version from 5.11 through 5.15. Only one can be active as the system-wide default at a time, so use <code>eselect</code> to choose which version applications should load.</p>
 
-<h3>eselect usage</h3>
+<h3>Using eselect</h3>
 <pre><code>eselect nimf-qt5 list
 eselect nimf-qt5 show
 eselect nimf-qt5 set 5.13</code></pre>
 
-<p>The first install selects 5.15 (the default). Upgrades preserve the
-existing selection. amd64 provides 5.11 through 5.15; arm64 provides 5.15.
-This does not require a global <code>QT_PLUGIN_PATH</code>.</p>
-<div class="note">An application with a private Qt plugin directory may need
-a link to the matching versioned file in
-<code>/usr/lib64/nimf/qt5/&lt;minor&gt;/platforminputcontexts/</code>.</div>
+<p>The first installation selects 5.15, the default. Upgrades preserve the existing selection. amd64 provides versions 5.11 through 5.15; arm64 provides only 5.15. A global <code>QT_PLUGIN_PATH</code> is not required.</p>
+<div class="note">An application with its own Qt plugin directory may need a link to the matching versioned file in <code>/usr/lib64/nimf/qt5/&lt;minor&gt;/platforminputcontexts/</code>.</div>
 
 <h2>Environment variables for graphical sessions</h2>
-<p>Add the following to <code>~/.xprofile</code>, <code>/etc/xprofile</code>, or a shell script under
-<code>/etc/X11/xinit/xinitrc.d/</code>:</p>
-<pre><code>export GTK_IM_MODULE=nimf
-export QT4_IM_MODULE="nimf"
-export QT_IM_MODULE=nimf
-export QT6_IM_MODULE=nimf
-export XMODIFIERS="@im=nimf"</code></pre>
-<p>After uninstalling Nimf, remove those assignments from the configuration file and clear
-them from the current shell:</p>
-<pre><code>unset GTK_IM_MODULE QT4_IM_MODULE QT_IM_MODULE QT6_IM_MODULE XMODIFIERS</code></pre>
+<p>Set the following values when starting a graphical session so that GTK and Qt applications process input through nimf:</p>
+<pre><code>GTK_IM_MODULE=nimf
+QT_IM_MODULE=nimf
+XMODIFIERS=@im=nimf</code></pre>
 
 <h2>Automation</h2>
-<p>Every Monday at 03:17 UTC (12:17 Korea time), the workflow checks for the
-latest stable upstream release of hamonikr/nimf; validates its source and Debian Bookworm assets; builds Qt 5.11&ndash;5.14 in checksum-pinned SDKs;
-extracts Qt 5.15.8 from Bookworm packages; opens a tested PR; merges the PR promotes the corresponding prerelease.</p>
-<div class="note">Because this check runs weekly rather than on every
-upstream commit, a new upstream release is <strong>not</strong> reflected
-here immediately &mdash; it can take a week or more to appear as a
-PR.</div>
-<p>See <a href="CONTRIBUTING.md">CONTRIBUTING.md</a> for bootstrap and
-validation commands.</p>
+<p>Every Monday at 03:17 UTC (12:17 Korea time), the workflow checks for the latest stable upstream release of hamonikr/nimf, validates the source and Debian Bookworm assets, builds Qt 5.11&ndash;5.14 in checksum-pinned SDKs, extracts Qt 5.15.8 from Bookworm packages, and opens a validated PR. Merging the PR promotes the corresponding prerelease.</p>
+<div class="note">Because this check runs weekly, a new upstream release is <strong>not reflected immediately</strong> and may take more than a week to appear in a PR.</div>
+<p>See <a href="CONTRIBUTING.md">CONTRIBUTING.md</a> for bootstrap and validation commands.</p>
 
 <p>GitHub project: <a href="https://github.com/june3474/nimf-overlay">june3474/nimf-overlay</a></p>
 
@@ -193,74 +163,41 @@ validation commands.</p>
 <h1>nimf-overlay</h1>
 <p class="subtitle"><a href="https://github.com/hamonikr/nimf">hamonikr/nimf</a>를 위한 Gentoo 오버레이입니다.</p>
 
-<p>nimf는 기본적으로 GTK 3, Qt 6, Wayland 환경에서 입력을 지원합니다. GTK 2, GTK 4,
-입력은 USE 플래그로 선택적으로 추가할 수 있습니다.
-Qt 5 플러그인은 Gentoo가 더 이상 Qt 5를 제공하지 않기 때문에 격리된 SDK 이미지 컨테이너에서 버전별로 별도로 빌드되어 제공됩니다.<br /><code>nimf-settings</code>는 GTK 3로 빌드됩니다.</p>
+<p>nimf ebuild는 기본적으로 GTK 3, Qt 6, Wayland를 지원합니다. GTK 2, GTK 4 같은 다른 입력 엔진은 USE 플래그로 선택적으로 추가할 수 있습니다. Gentoo가 더 이상 Qt 5를 제공하지 않기 때문에, Qt 5 플러그인은 격리된 SDK 이미지 컨테이너에서 버전별로 따로 빌드되어 제공됩니다.
+<code>nimf-settings</code>는 업스트림 소스(현재 GTK 3)를 기준으로 빌드됩니다.</p>
 
-<h2>이 오버레이는 무엇을 왜 제공하는데?</h2>
-<p><strong>2026년 6월 30일</strong>, Qt 5 패키지가 Gentoo의 소스 트리에서
-mask되었습니다. 이에 따라 이 날짜 이후에 sync된 Gentoo 시스템에서는 더 이상 nimf의
-Qt 5 입력 모듈을 빌드할 수 없게 되었고, 그 부분의 빌드가 실패하면서 <code>nimf</code>
-전체 빌드도 함께 실패할 수 밖에 없게 되었습니다.</p>
-<p>하지만 Qt 5 애플리케이션들은 여전히 사용되고 있고, nimf의 qt5 입력 모률은 여전히 필요합니다.
-이 오버레이는 2026년 6월 30일 이후 Qt 5를 설치할 수 없는 gentoo box에서 nimf Qt 5
-애플리케이션에서 한글을 입력/사용할 수 있는 ebuild를 제공합니다.</p>
+<h2>이 오버레이는 왜 필요한가?</h2>
+<p><strong>2026-06-30</strong>에 Qt 5 패키지가 Gentoo 소스 트리에서 마스킹되었습니다. 그 결과 이 날짜 이후 sync한 Gentoo 시스템에서는 nimf의 Qt 5 입력 모듈을 더 이상 빌드할 수 없게 되어, <code>nimf</code> 빌드 전체가 실패합니다.</p>
+<p>하지만 Qt 5 애플리케이션은 여전히 사용되고 있고, nimf의 Qt 5 입력 모듈도 여전히 필요합니다. 이 오버레이는 2026-06-30 이후 Qt 5 자체를 설치할 수 없는 Gentoo 시스템에서도 nimf를 통해 Qt 5 애플리케이션에서 한글을 입력하고 사용할 수 있게 해주는 ebuild를 제공합니다.</p>
 
 <h2>설치</h2>
 <pre><code>eselect repository add nimf-overlay git https://github.com/june3474/nimf-overlay.git
 emaint sync -r nimf-overlay
 emerge --ask app-i18n/nimf</code></pre>
-<p>기본 설정은 GTK 2/3/4, Qt 6, Wayland, Hangul, Qt 5 호환 플러그인을
-빌드하여 설치합니다.
-<code>USE=-qt5</code>를 사용하면 Qt 5 플러그인은 설치하지 않을 수 있습니다.</p>
+<p>기본 설정은 GTK 2/3/4, Qt 6, Wayland, Hangul, Qt 5 호환 플러그인을 빌드하여 설치합니다. <code>USE=-qt5</code>를 사용하면 Qt 5 플러그인은 설치되지 않습니다.</p>
 
-<h2>Qt 5 지원: 왜 Qt 5 버전별로 별도 플러그인이 필요할까요?</h2>
-<p>Qt 5의 플랫폼 입력 컨텍스트 플러그인은 Qt5Core/Qt5Gui에 대해 마이너
-릴리즈 간 ABI 안정성이 보장되지 않는 방식으로 링크됩니다. Qt 5.11 헤더와
-라이브러리로 빌드된 플러그인이 Qt 5.15로 링크된 애플리케이션 프로세스
-안에서 올바르게 로드된다는 보장이 없으며, 그 반대도 마찬가지입니다 &mdash;
-모든 5.x 마이너 버전에서 동작하는 단일 바이너리는 존재하지 않습니다.</p>
-<p>이를 해결하기 위해 이 ebuild는 Qt 5.11부터 5.15까지 마이너 버전별로
-하나씩 <code>platforminputcontexts</code> 플러그인을 빌드하여 설치합니다.
-한 번에 시스템 전역 기본값으로 활성화될 수 있는 플러그인은 하나뿐이므로,
-애플리케이션이 로드할 플러그인을 <code>eselect</code>로 선택해야 합니다.</p>
+<h2>Qt 5 지원: 왜 Qt 5 버전별로 플러그인이 필요한가?</h2>
+<p>Qt 5의 입력 플러그인은 Qt5Core/Qt5Gui에 대해 마이너 릴리즈 간 ABI 안정성이 보장되지 않는 방식으로 링크됩니다. Qt 5.11 헤더와 라이브러리로 빌드된 플러그인이 Qt 5.15에 링크된 애플리케이션 프로세스 안에서 올바르게 로드된다는 보장이 없으며, 그 반대도 마찬가지입니다 &mdash; 모든 5.x 마이너 버전에서 동작하는 단일 바이너리는 존재하지 않습니다.</p>
+<p>이를 해결하기 위해 이 ebuild는 5.11부터 5.15까지 Qt 5 마이너 버전마다 <code>platforminputcontexts</code> 플러그인을 하나씩 빌드하여 설치합니다. 다만 시스템 전역 기본값으로는 한 번에 하나만 활성화할 수 있으므로, 애플리케이션이 어떤 버전을 로드할지 <code>eselect</code>로 선택해야 합니다.</p>
 
-<h3>eselect 사용 예시</h3>
+<h3>eselect 사용법</h3>
 <pre><code>eselect nimf-qt5 list
 eselect nimf-qt5 show
 eselect nimf-qt5 set 5.13</code></pre>
 
-<p>최초 설치 시에는 5.15가 기본값으로 선택되어 있습니다. 업그레이드 시에는 기존
-선택이 유지됩니다. amd64는 5.11부터 5.15까지 제공하며, arm64는 5.15만
-제공합니다. 전역 <code>QT_PLUGIN_PATH</code>는 필요하지 않습니다.</p>
-<div class="note">자체 Qt 플러그인 디렉터리를 사용하는 애플리케이션은
-<code>/usr/lib64/nimf/qt5/&lt;마이너버전&gt;/platforminputcontexts/</code>
-안에 해당 버전 파일로의 링크를 설정해야할 수도 있습니다.</div>
-<p>* 한컴오피스는 자체 Qt 5.11.3 nimf 플러그인을 내장하고 있습니다. 이 패키지로 설치되는 nimf는
-  한컴오피스의 한글 입력 시스템을 건드리지 않습니다.</p>
+<p>최초 설치 시에는 5.15(기본값)가 선택됩니다. 업그레이드 시에는 기존 선택이 유지됩니다. amd64는 5.11부터 5.15까지 제공하며, arm64는 5.15만 제공합니다. 전역 <code>QT_PLUGIN_PATH</code>는 필요하지 않습니다.</p>
+<div class="note">자체 Qt 플러그인 디렉터리를 사용하는 애플리케이션은 <code>/usr/lib64/nimf/qt5/&lt;minor&gt;/platforminputcontexts/</code> 안의 해당 버전 파일로 링크를 걸어줘야 할 수도 있습니다.</div>
 
-<h2>그래픽 세션 환경변수</h2>
-<p><code>~/.xprofile</code>, <code>/etc/xprofile</code> 또는
-<code>/etc/X11/xinit/xinitrc.d/</code> 아래의 셸 스크립트에 다음 내용을 추가할 수 있습니다:</p>
-<pre><code>export GTK_IM_MODULE=nimf
-export QT4_IM_MODULE="nimf"
-export QT_IM_MODULE=nimf
-export QT6_IM_MODULE=nimf
-export XMODIFIERS="@im=nimf"</code></pre>
-<p>nimf를 제거한 뒤에는 위 설정을 파일에서 제거하고 현재 셸에서 다음과 같이 해제할 수 있습니다:</p>
-<pre><code>unset GTK_IM_MODULE QT4_IM_MODULE QT_IM_MODULE QT6_IM_MODULE XMODIFIERS</code></pre>
+<h2>그래픽 세션 환경 변수</h2>
+<p>그래픽 세션을 시작할 때 다음 값을 설정하면 GTK와 Qt 애플리케이션 모두 nimf를 통해 입력을 처리합니다:</p>
+<pre><code>GTK_IM_MODULE=nimf
+QT_IM_MODULE=nimf
+XMODIFIERS=@im=nimf</code></pre>
 
 <h2>자동화</h2>
-<p>매주 월요일 03:17 UTC(한국 시간 12:17)에 hamonikr/nimf의 최신
-stable 업스트림 릴리즈를 감지하여, 소스와 Debian Bookworm 자산을 검증하고,
-checksum으로 고정된 SDK에서 Qt 5.11&ndash;5.14를 빌드한 다음, Bookworm
-패키지에서 Qt 5.15.8을 추출하고 테스트를 거쳐 PR을 엽니다.
-PR을 머지하면 해당 prerelease가 승격됩니다.</p>
-<div class="note">이 검사는 매 커밋마다가 아니라 1주일 단위로 실행되므로,
-업스트림에 새 릴리즈가 나와도 <strong>즉시 반영되지 않으며</strong>, PR로
-반영되기까지 최대 일주일 이상 걸릴 수 있습니다.</div>
-<p>부트스트랩 및 검증 명령은 <a href="CONTRIBUTING.md">CONTRIBUTING.md</a>를
-참고하세요.</p>
+<p>매주 월요일 03:17 UTC(한국 시간 12:17)에 워크플로우가 hamonikr/nimf의 최신 stable 업스트림 릴리스를 확인하고, 소스와 Debian Bookworm 자산을 검증한 뒤, checksum으로 고정된 SDK에서 Qt 5.11&ndash;5.14를 빌드하고, Bookworm 패키지에서 Qt 5.15.8을 추출하여 검증을 거친 PR을 엽니다. PR을 머지하면 해당 prerelease가 승격됩니다.</p>
+<div class="note">이 검사는 매주 실행되므로, 새 업스트림 릴리스가 나와도 <strong>즉시 반영되지 않으며</strong>, PR로 나타나기까지 일주일 이상 걸릴 수 있습니다.</div>
+<p>부트스트랩 및 검증 명령은 <a href="CONTRIBUTING.md">CONTRIBUTING.md</a>를 참고하세요.</p>
 
 <p>GitHub 프로젝트: <a href="https://github.com/june3474/nimf-overlay">june3474/nimf-overlay</a></p>
 

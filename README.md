@@ -4,7 +4,7 @@
 
 [hamonikr/nimf](https://github.com/hamonikr/nimf)를 위한 Gentoo 오버레이입니다.
 
-nimf는 기본적으로 GTK 3, Qt 6, Wayland를 지원합니다. GTK 2, GTK 4 같은 다른 입력 엔진은 USE 플래그로 선택적으로 추가할 수 있습니다. Gentoo가 더 이상 Qt 5를 제공하지 않기 때문에, Qt 5 플러그인은 격리된 SDK 이미지 컨테이너에서 버전별로 따로 빌드되어 제공됩니다.\
+nimf ebuild는 기본적으로 GTK 3, Qt 6, Wayland를 지원합니다. GTK 2, GTK 4 같은 다른 입력 엔진은 USE 플래그로 선택적으로 추가할 수 있습니다. Gentoo가 더 이상 Qt 5를 제공하지 않기 때문에, Qt 5 플러그인은 격리된 SDK 이미지 컨테이너에서 버전별로 따로 빌드되어 제공됩니다.
 `nimf-settings`는 업스트림 소스(현재 GTK 3)를 기준으로 빌드됩니다.
 
 ## 이 오버레이는 왜 필요한가?
@@ -16,7 +16,7 @@ Qt 5 입력 모듈을 더 이상 빌드할 수 없게 되어, `nimf` 빌드 전�
 하지만 Qt 5 애플리케이션은 여전히 사용되고 있고, nimf의 Qt 5 입력 모듈도
 여전히 필요합니다. 이 오버레이는 2026-06-30 이후 Qt 5 자체를 설치할 수 없는
 Gentoo 시스템에서도 nimf를 통해 Qt 5 애플리케이션에서 한글을 입력하고
-사용할 수 있게 해주는 ebuild 몇 가지를 제공합니다.
+사용할 수 있게 해주는 ebuild를 제공합니다.
 
 ## 설치
 
@@ -41,7 +41,7 @@ ABI 안정성이 보장되지 않는 방식으로 링크됩니다. Qt 5.11 헤�
 이를 해결하기 위해 이 ebuild는 5.11부터 5.15까지 Qt 5 마이너 버전마다
 `platforminputcontexts` 플러그인을 하나씩 빌드하여 설치합니다. 다만
 시스템 전역 기본값으로는 한 번에 하나만 활성화할 수 있으므로, 애플리케이션이
-어떤 것을 로드할지 `eselect`로 선택해야 합니다.
+어떤 버전을 로드할지 `eselect`로 선택해야 합니다.
 
 ### eselect 사용법
 
@@ -64,22 +64,10 @@ eselect nimf-qt5 set 5.13
 그래픽 세션을 시작할 때 다음 값을 설정하면 GTK와 Qt 애플리케이션
 모두 nimf를 통해 입력을 처리합니다:
 
-`~/.xprofile`, `/etc/xprofile` 또는 `/etc/X11/xinit/xinitrc.d/` 아래의
-셸 스크립트에 다음 내용을 추가할 수 있습니다:
-
-```bash
-export GTK_IM_MODULE=nimf
-export QT4_IM_MODULE="nimf"
-export QT_IM_MODULE=nimf
-export QT6_IM_MODULE=nimf
-export XMODIFIERS="@im=nimf"
-```
-
-nimf를 제거한 뒤에는 위 설정을 파일에서 제거하고, 현재 셸에서는 다음과
-같이 해제할 수 있습니다:
-
-```bash
-unset GTK_IM_MODULE QT4_IM_MODULE QT_IM_MODULE QT6_IM_MODULE XMODIFIERS
+```text
+GTK_IM_MODULE=nimf
+QT_IM_MODULE=nimf
+XMODIFIERS=@im=nimf
 ```
 
 ## 자동화

@@ -110,13 +110,34 @@ class OverlayLayoutTest(unittest.TestCase):
         self.assertEqual(patch.count("with_im_config_data=$withval"), 1)
         self.assertEqual(patch.count("with_imsettings_data=$withval"), 1)
 
-    def test_documented_no_global_qt_plugin_path(self) -> None:
+    def test_readme_html_matches_environment_guidance(self) -> None:
         readme = self.read("README.md")
+        html = self.read("README.html")
         self.assertIn("eselect nimf-qt5", readme)
-        self.assertIn("QT_IM_MODULE=nimf", readme)
-        self.assertIn("GTK_IM_MODULE=nimf", readme)
-        self.assertIn('XMODIFIERS="@im=nimf"', readme)
-        self.assertIn("한컴오피스", self.read("README.html"))
+        self.assertNotIn("<br />", html)
+        for wording in (
+            "nimf ebuild는 기본적으로",
+            "사용할 수 있게 해주는 ebuild를 제공합니다.",
+            "어떤 버전을 로드할지",
+            "The nimf ebuild supports",
+            "This overlay provides an ebuild",
+            "choose which version applications should load",
+        ):
+            self.assertIn(wording, html)
+        for variable in (
+            "GTK_IM_MODULE=nimf",
+            "QT_IM_MODULE=nimf",
+            "XMODIFIERS=@im=nimf",
+        ):
+            self.assertIn(variable, readme)
+            self.assertEqual(len(re.findall(rf"(?<![A-Z_]){re.escape(variable)}(?![A-Z_])", html)), 2)
+        for obsolete_guidance in (
+            "QT4_IM_MODULE",
+            "QT6_IM_MODULE",
+            "unset GTK_IM_MODULE",
+            "한컴오피스",
+        ):
+            self.assertNotIn(obsolete_guidance, html)
         self.assertNotIn("export QT_PLUGIN_PATH", readme)
 
     def test_install_and_uninstall_environment_messages(self) -> None:
